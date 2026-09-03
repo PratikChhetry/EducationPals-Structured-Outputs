@@ -1,0 +1,85 @@
+Planning stage of an AI course-generation pipeline
+
+Course must take 90 minutes for a learner to complete
+
+Course Requirements:
+    Use exactly 2 lessons
+    Each lesson may contain up to 5 sections
+    Each section should teach one main idea
+    Each lesson must contain 1 to 3 measurable checkpoints
+    Each lesson must end with one interactive Python build-along
+    Each build-along should take less than 20 minutes
+    The artifact from Lesson 1 must be directly reused and extended in Lesson 2
+    Lesson 2 must never depend on a concept that Lesson 1 did not introduce
+    The final Lesson 2 artifact must complete the stated capstone
+    Do not include quizzes, flashcards, or assessments
+    Course is text-only, although inline HTML/SVG diagrams may be proposed
+
+
+Build-Along Requirements:
+    The build-alongs must be incremental
+    Learner should not simply receive finished code
+    For every build-along, identify:
+        What the learner starts with
+        What they add at every major step
+        What visible terminal check should appear after each step
+        What artifact they have at the end
+        How that artifcact is used by the next lesson
+
+
+Planning Principles:
+    Design backward from the capstone
+    Use the breaking points in the course specs to determine what needs to be taught
+    Every checkpoint must describe something the learner can do rather than what they just understood
+    Only include concepts necessary to reach the capstone within approximately 90 minutes
+
+
+Output Format:
+    Return a plan using this structure:
+
+    # Course Goal
+
+    # Lesson 1
+    ## Purpose
+    ## Checkpoints
+    ## Sections
+
+For each section include:
+    Title
+    Main idea
+    Why it is needed
+    Estimated learner time
+
+    ## Build-Along 1
+    Starting point
+    Step-by-step progression
+    Visible checks 
+    Final artifact
+
+    # Lesson 2
+    ## Purpose
+    ## Checkpoints 
+    ## Sections 
+
+For each section include:
+    Title
+    Main idea 
+    Why it is needed
+    Estimated learner time
+
+    ## Build-Along 2
+    Starting artifact from Lesson 1
+    Step-by-step progression
+    Visible checks 
+    Final capstone artifact
+
+
+    # Prerequisite Check 
+    Explain why Lesson 2 only depends on concepts introduced in Lesson 1
+
+    # Scope Cuts
+    List concepts intentionally excluded because they are not necessary for the capstone or 90-minute Scope
+
+Preserve real industry vocabulary
+Do not invent terminology
+Do not write the full lesson yet
