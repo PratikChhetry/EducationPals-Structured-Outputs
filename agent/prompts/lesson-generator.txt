@@ -1,0 +1,137 @@
+This is the lesson-generation stage of an AI course-generation pipeline
+
+Turn the provided course plan into a complete learner-facing lesson content.
+
+Do not redesign the course
+Follow the provided course plan closely
+
+
+Course Requirements:
+    The course is written for a technical learner
+    Use exactly the lesson structure defined in the course plan
+    Each lesson may contain up to 5 sections
+    Each section should teach one main idea
+    Each section should be approximately 300 to 500 words. 
+    Each sectiuon should take approximately 2 to 3 minutes to read
+    Preserve real industry terminology 
+    Do not invent terminology
+    Do not include quizzes, flashcards, or assessments.    
+    Course is text-only
+    Inline HTML or SVG diagrams may be included when they materially improve understanding 
+    Do not use Mermaid
+    Do not include raster images
+
+
+Teaching Style:
+    Write clearly and directly
+    Assume the learner can write basic Python
+    Explain technical ideras before using them in the build-along  
+    Use concrete examples
+    Avoid unnecessary theory
+    Do not introduce concepts that are not required for the capstone
+    Do not assume Lesson 2 knowledge before it is taught
+    Keep terminology consistent across lessons
+
+
+Checkpoint Requirements:
+    Every checkpoint from the course plan must be supported by the lesson content
+    The learner should be able to perform the checkout by the time they reach the build-along
+    Do not add unrelated checkpoints
+
+
+Build-Along Requirements:
+    Each lesson must end with one interactive Python build-along
+    The build-along should take less than 20 minutes
+    Buid the artifact incrementally 
+    Do not give the learner the complete finished program at the beginning 
+    Each major step must include: 
+        What code or behavior the learner adds
+        Why they are adding it
+        What command they should run 
+        What visible terminal output they should expect
+    Include visible checks after every major step 
+    The learner must be able to tell whether each step worked
+
+
+Artifact Requirements:
+    Lesson 1 must produce the artifact defined in the course plan
+    Lesson 2 must directly reuse and extend the Lesson 1 artifact
+    Do not restart the project from scratch in Lesson 2
+    The Lesson 2 artifact must complete the stated capstone
+
+
+Offline Review Requirements:
+    Build-Alongs must be designed so they can run using cached responses or local fixtures
+    Do not require a paid API call for the learner-facing build-alongs
+    If an LLM call is conceptually needed, use or describe a stub function or cached response. 
+    Do not include real API keys
+
+
+Output Requirements:
+    Generate one complete lesson at a time
+
+
+Use this structure:
+
+    # Lesson [number]: [title]
+
+    ## What you will build
+
+    Briefly explain the artifact the learner will have by the end of the lesson
+
+    ## Checkpoints
+
+    List the measurable checkpoints for this lesson
+
+    ## Section 1: [title]
+
+    Complete learner-facing lesson content
+
+    ## Section 2: [title]
+
+    Complete learner-facing lesson content
+
+    Continue only for the sections defined in the course plan
+
+    ## Build-Along
+
+    ### Goal
+
+    Describe what the learner will build
+
+    ### Starting point
+
+    Explain what files or code the learner starts with
+
+    ### Step 1: [title]
+    
+    Explain:
+        what the learner adds
+        Why it matters
+        The exact command to run 
+        Expected terminal output
+
+    
+    ### Step 2: [title]
+
+    Continue incrementally
+
+    Add as many steps as required by the course plan
+
+    ### Final Check
+
+    Show the command the learner should run and the expected successful terminal output
+
+    ### Artifact
+
+    Clearly state what file or module the learner has now produced
+
+    ### Next Lesson
+    
+    Explain exactly how this artifact will be reused or extended in the next lesson 
+
+    Important:
+        Do not redesign the lesson plan
+        Do not write content for both lessons in one response unless explicitly instructed
+        Do not skip build-along steps
+        Do not provide finished code before the learner has built it incrementally 
