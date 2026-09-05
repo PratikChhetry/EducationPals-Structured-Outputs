@@ -66,7 +66,6 @@ Lesson 2 completes the capstone.
 ## Project Structure
 
 
-
     README.md
     requirements.txt
     
