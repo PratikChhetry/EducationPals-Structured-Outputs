@@ -67,37 +67,37 @@ Lesson 2 completes the capstone.
 
 
 
-README.md
-requirements.txt
-writeup.md
-    course/
-        lesson-1.md
-        lesson-2.md
+    README.md
+    requirements.txt
+    writeup.md
+        course/
+            lesson-1.md
+            lesson-2.md
 
-build/
-    lesson-1/
-        validator_v1.py
-    lesson-2/
-        validator_v1.py
-        validator_pipeline.py
+    build/
+        lesson-1/
+            validator_v1.py
+        lesson-2/
+            validator_v1.py
+            validator_pipeline.py
 
-output/
-    lesson-1.txt
-    lesson-2.txt
+    output/
+        lesson-1.txt
+        lesson-2.txt
 
-agent/
-    course-spec.md
-    generate.py
-    prompts/
-        planner.txt
-        lesson-generator.txt
-        reviewer.txt
-        reviser.txt
-    generated/
-        course-plan.md
-        review.md
-        lesson-1-revised.txt
-        lesson-2-revised.txt
+    agent/
+        course-spec.md
+        generate.py
+        prompts/
+            planner.txt
+            lesson-generator.txt
+            reviewer.txt
+            reviser.txt
+        generated/
+            course-plan.md
+            review.md
+            lesson-1-revised.txt
+            lesson-2-revised.txt
 
 
 ## Requirements
