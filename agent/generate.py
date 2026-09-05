@@ -34,6 +34,9 @@ review_path = generated_dir / "review.md"
 
 course_dir = project_dir / "course"
 
+reviser_prompt_path = agent_dir / "prompts" / "reviser.txt"
+revision_1_marker = generated_dir / "lesson-1-revised.txt"
+revision_2_marker = generated_dir / "lesson-2-revised.txt"
 
 # Helper function
 
@@ -189,6 +192,56 @@ Here is Lesson 2:
     print(f"Saved to: {review_path}")
 
 
+def revise_lesson(lesson_number):
+
+    reviser_prompt = read_file(reviser_prompt_path)
+    review = read_file(review_path)
+
+    lesson_path = course_dir / f"lesson-{lesson_number}.md"
+    lesson = read_file(lesson_path)
+
+    full_prompt = f"""
+{reviser_prompt}
+
+Here is the reviewer feedback:
+
+--- REVIEW ---
+
+{review}
+
+--- END REVIEW ---
+
+Here is Lesson {lesson_number}:
+
+--- LESSON {lesson_number} ---
+
+{lesson}
+
+--- END LESSON {lesson_number} ---
+
+Revise Lesson {lesson_number} only.
+
+Apply the reviewer fixes that are relevant to this lesson.
+Return the complete corrected lesson.
+"""
+
+    print(f"Revising Lesson {lesson_number}...")
+
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input=full_prompt
+    )
+
+    revised_lesson = response.output_text
+
+    lesson_path.write_text(
+        revised_lesson,
+        encoding="utf-8"
+    )
+
+    print(f"Lesson {lesson_number} revised.")
+
+
 # Run pipeline
 
 if __name__ == "__main__":
@@ -220,3 +273,22 @@ if __name__ == "__main__":
         run_reviewer()
     else:
         print("Existing review found.")
+
+    # Revision
+    if not revision_1_marker.exists():
+        revise_lesson(1)
+        revision_1_marker.write_text(
+            "Lesson 1 revised using reviewer feedback.",
+            encoding="utf-8"
+        )
+    else:
+        print("Lesson 1 already revised.")
+
+    if not revision_2_marker.exists():
+        revise_lesson(2)
+        revision_2_marker.write_text(
+            "Lesson 2 revised using reviewer feedback.",
+            encoding="utf-8"
+        )
+    else:
+        print("Lesson 2 already revised.")

@@ -1,0 +1,35 @@
+This is the revision stage of an AI course-generation pipeline
+
+Your job is to revise the generated lessons using the reviewer feedback
+
+Do not redesign the course
+Do not add unrelated concepts
+Do not rewrite for style or polish unless needed for technical clarity
+
+Apply only the fixes required by the review
+
+Revision Requirements:
+    Preserve the approved lesson structure
+    Preserve checkpoints
+    Preserve the capstone
+    Preserve lesson order
+    Keep Lesson 2 dependent only on Lesson 1
+    Keep build-alongs incremental
+    Keep learner execution offline
+    Do not introduce paid API calls
+    Do not include API keys
+
+You must fix:
+    filename mismatches
+    function signature mismatches
+    import mismatches
+    inconsistent variable names
+    broken commands
+    missing imports
+    non-deterministic stub behavior
+    any issue that could prevent the learner from reaching the capstone
+
+Important:
+    Do not merely describe the fixes
+    Return the complete corrected lesson
+    Keep all unaffected content intact where possible

@@ -1,3 +1,5 @@
+--- LESSON 1 (REVISED) ---
+
 # Lesson 1: Reliable JSON parsing and schema validation for LLM responses
 
 ## What you will build
@@ -8,7 +10,7 @@ This module exposes:
 - parse_model_response(text) -> (obj or None, error_message or None)
 - validate_against_schema(obj, schema) -> (is_valid: bool, list_of_validation_errors)
 - format_validation_errors(errors) -> list[str]
-- a small main loop that demonstrates parsing/validation for three sample model responses and uses a send_to_model stub (no network calls)
+- a small main loop that demonstrates parsing/validation for three sample LLM responses and uses a send_to_model stub (no network calls)
 
 ## Checkpoints
 
@@ -48,7 +50,7 @@ end = text.rfind('}')   # or ']'
 candidate = text[start:end+1]
 json.loads(candidate)
 
-This heuristic is intentionally simple: it assumes the model's JSON is contiguous and the opening/closing braces match somewhere in the response. It will not fix malformed JSON like trailing commas or unescaped quotes; those require more involved transformations or asking the model to repair (Lesson 2). For parsing, do this order:
+This heuristic is intentionally simple: it assumes the model's JSON is contiguous and the opening/closing braces match somewhere in the response. It will not fix malformed JSON like trailing commas or unescaped quotes; these require more involved transformations or asking the model to repair (Lesson 2). For parsing, do this order:
 
 1. Try json.loads(text) directly — best-case success.
 2. If it fails, try extracting from the first opening brace/bracket to the last matching close and parse that substring, returning both the parsed object and a note that you extracted JSON.
@@ -104,9 +106,9 @@ A raw ValidationError is rich but not concise. For automated repair and human de
 Construct a small formatter that converts a ValidationError into a one-line summary. Key steps:
 - Convert .absolute_path into a canonical path string:
   - If absolute_path is empty → use '<root>'
-  - For lists: join segments, rendering ints as [idx] (e.g., items[0])
+  - For lists: join segments, rendering ints as [idx] (e.g., items[0]). If the root itself is an array (first segment is an int), render as "[0]" or similar.
 - Inspect error.validator:
-  - If 'required': error.message includes which property is missing; extract the missing property name(s).
+  - If 'required': error.message usually contains which property is missing; include the succinct message.
   - If 'type': use error.validator_value to show expected type and error.instance (or its Python type) to show actual.
   - For other validators, fall back to error.message.
 
@@ -139,6 +141,7 @@ Create a file named validator_v1.py containing the following minimal skeleton. T
 ```python
 # validator_v1.py (starting point)
 from json import loads, JSONDecodeError
+from jsonschema import Draft7Validator
 
 # Sample model response strings
 SAMPLE_RESPONSES = [
@@ -157,9 +160,19 @@ SCHEMA = {
     "required": ["title", "items"]
 }
 
-# Stub model sender: cycles through sample responses
-def send_to_model(prompt):
-    # In a real integration you would call an API. Here we return the next sample for demo.
+# Stub model sender:
+# - If the prompt contains the substring "Return only JSON" we deterministically
+#   return a valid JSON response (SAMPLE_RESPONSES[0]) so offline demos are robust.
+# - Otherwise we cycle through sample responses for demo variety.
+def send_to_model(prompt: str) -> str:
+    """
+    In a real integration you would call an API. For this course we provide a
+    deterministic stub: when asked to "Return only JSON" it returns a valid JSON
+    sample; otherwise it cycles through SAMPLE_RESPONSES for demo purposes.
+    """
+    if "Return only JSON" in prompt:
+        # Return a clean, valid JSON sample to simulate the model fixing its output.
+        return SAMPLE_RESPONSES[0]
     if not hasattr(send_to_model, "_i"):
         send_to_model._i = 0
     res = SAMPLE_RESPONSES[send_to_model._i % len(SAMPLE_RESPONSES)]
@@ -263,7 +276,8 @@ def parse_model_response(text):
         return obj, None
     except JSONDecodeError as e:
         # Try to extract JSON from surrounding prose
-        first_obj = min([i for i in (text.find('{'), text.find('[')) if i != -1], default=-1)
+        first_positions = [pos for pos in (text.find('{'), text.find('[')) if pos != -1]
+        first_obj = min(first_positions) if first_positions else -1
         if first_obj != -1:
             # decide which closing bracket to use depending on opening
             if text[first_obj] == '{':
@@ -307,8 +321,6 @@ Why it matters
 Code to add to validator_v1.py:
 
 ```python
-from jsonschema import Draft7Validator
-
 def validate_against_schema(obj, schema):
     """
     Returns (is_valid: bool, errors: list[ValidationError])
@@ -353,12 +365,22 @@ Why it matters
 Code to add:
 
 ```python
-def _path_to_string(path):
-    # path is an iterable of keys/indices
+def _path_to_string(path_iterable):
+    """
+    Convert an iterable of path segments into a canonical string.
+    Examples:
+      [] -> "<root>"
+      ["items", 0] -> "items[0]"
+      [0] -> "[0]"   # root array element
+    """
     parts = []
-    for p in path:
+    for p in path_iterable:
         if isinstance(p, int):
-            parts[-1] = f"{parts[-1]}[{p}]"
+            if not parts:
+                # root is an array index
+                parts.append(f"[{p}]")
+            else:
+                parts[-1] = f"{parts[-1]}[{p}]"
         else:
             parts.append(str(p))
     return ".".join(parts) if parts else "<root>"
@@ -368,10 +390,7 @@ def format_validation_errors(errors):
     for err in errors:
         path = _path_to_string(list(err.absolute_path))
         if err.validator == "required":
-            # err.message usually contains which property is missing
-            # err.validator_value gives the list of required properties
-            missing = err.message.split("'")  # quick parse
-            # fallback: include raw message
+            # err.message usually contains which property is missing; include the message
             msgs.append(f"path {path}: {err.message}")
         elif err.validator == "type":
             expected = err.validator_value
@@ -382,6 +401,10 @@ def format_validation_errors(errors):
             msgs.append(f"path {path}: {err.message}")
     return msgs
 ```
+
+Notes:
+- The _path_to_string implementation avoids an IndexError if the first path segment is an int (root array case) by handling that explicitly.
+- For required-property errors we keep the concise err.message rather than brittle string splits; for this course that is acceptable and clear.
 
 Update your main to call format_validation_errors when validation fails and print each formatted line.
 
@@ -482,14 +505,16 @@ You have produced validator_v1.py which contains:
 - parse_model_response(text) → (obj or None, error_message or None)
 - validate_against_schema(obj, schema) → (bool, list_of_errors)
 - format_validation_errors(errors) → list[str]
-- SAMPLE_RESPONSES, SCHEMA, send_to_model stub, and a demo main loop printing parse/validation results.
+- SAMPLE_RESPONSES, SCHEMA, send_to_model stub (deterministic behavior for offline demos), and a demo main loop printing parse/validation results.
 
 ### Next Lesson
 
 validator_v1.py is the validator core for Lesson 2. In the next lesson you'll reuse parse_model_response, validate_against_schema, and format_validation_errors to:
 - Construct concise repair prompts from the formatted errors,
-- Call send_to_model(prompt) to request corrected JSON,
+- Call send_to_model(prompt) to request corrected JSON (the send_to_model stub will respond deterministically to prompts that include "Return only JSON"),
 - Implement a limited repair + retry loop that parses and re-validates repaired responses,
 - Return only schema-valid data or a clear repair-failed summary.
 
 Because validator_v1.py already produces deterministic, well-formatted validation errors and handles parsing+extraction, Lesson 2 will be able to build a repair loop without introducing new parsing or validation techniques.
+
+--- END LESSON 1 ---

@@ -1,3 +1,5 @@
+--- LESSON 2 ---
+
 # Lesson 2: Automated repair loop — parse → validate → repair → revalidate
 
 ## What you will build
@@ -7,7 +9,7 @@ By the end of this lesson you'll have extended the validator from Lesson 1 into 
 ## Checkpoints
 
 1. Build a make_repair_prompt(original_text, formatted_errors, schema_snippet) function that produces a concise instruction asking the model to return only JSON matching the schema and to fix the specific errors.
-2. Implement repair_once(prompt_text) that calls send_to_model(prompt_text), parses and validates the returned text, and reports whether it succeeded or what failed.
+2. Implement repair_once(prompt_text, schema) that calls send_to_model(prompt_text) — parses and validates the returned text — and reports whether it succeeded or what failed.
 3. Implement run_repair_loop(original_text, schema, max_attempts=3) that cycles through repair attempts, detects repeated identical responses, logs each attempt, and stops on success or exhaustion.
 4. Expose run_parse_validate_repair(input_text_or_prompt, schema, max_attempts) that returns (obj, None) on success or (None, failure_summary) on failure.
 
@@ -16,6 +18,7 @@ Note: This lesson reuses parse_model_response, validate_against_schema, and form
 - validate_against_schema(obj, schema)
 - format_validation_errors(errors)
 - send_to_model(prompt) — a stub that returns canned responses sequentially (no real API calls).
+- SAMPLE_RESPONSES and SCHEMA constants for demo usage (use the exact names SAMPLE_RESPONSES and SCHEMA).
 
 ## Section 1: Turning validation errors into repair instructions
 
@@ -41,12 +44,12 @@ Always include the minimal schema snippet or one small, concrete example of the 
 
 ## Section 2: Implementing a limited repair loop
 
-A repair loop wraps parse and validation into a retryable workflow. The loop's job is straightforward: try the original response first; if it fails, construct the repair prompt and call repair_once. Repeat until success or until we've hit max_attempts. Each iteration should log what happened: parsed? yes/no; validation status; and the concise error summary. Logging makes it easy to debug automated runs.
+A repair loop wraps parse and validation into a retryable workflow. The loop's job is straightforward: try the original response first; if it fails, construct the repair prompt and call repair_once(prompt_text, schema). Repeat until success or until we've hit max_attempts. Each iteration should log what happened: parsed? yes/no; validation status; and the concise error summary. Logging makes it easy to debug automated runs.
 
 Important behaviors for the loop:
 - First attempt should validate the original_text without sending a repair prompt (this avoids unnecessary model calls).
 - On failure, build a repair prompt using make_repair_prompt(original_text, formatted_errors, schema_snippet).
-- Call repair_once(prompt). If repair_once returns a schema-valid object, return it.
+- Call repair_once(prompt_text, schema). If repair_once returns a schema-valid object, return it.
 - Detect repeated identical model outputs across attempts: if the stub/model returns the exact same text twice in a row, assume it's stuck and abort early.
 - Respect a max_attempts limit. Typical default: 3 attempts (original + 2 repairs) to keep budgets manageable.
 
@@ -57,6 +60,8 @@ When success occurs:
 Attempt 3: Parsed OK and VALID — returning object: {'title': 'Fixed', 'items': ['a','b']}
 
 For deterministic offline behavior, the send_to_model stub should be deterministic: either iterate through a list of canned responses on each call, or check for keywords in the prompt and return a fixed "repaired" JSON. The loop logic must not depend on any external timing or network, so it runs reliably in tests.
+
+Important: throughout this lesson the repair_once signature is repair_once(prompt_text, schema) — be consistent when you implement and call it.
 
 ## Section 3: Safety, logging, and stopping conditions
 
@@ -114,6 +119,7 @@ You should have validator_v1.py in the current directory (created in Lesson 1). 
 - validate_against_schema(obj, schema) -> (True/False, list_of_errors)
 - format_validation_errors(errors) -> list_of_short_messages
 - send_to_model(prompt) -> returns samples from a predefined list sequentially (no real API calls)
+- SAMPLE_RESPONSES and SCHEMA constants for demo usage
 
 If you don't have it, create or reuse the Lesson 1 artifact before proceeding.
 
@@ -123,7 +129,7 @@ Open a terminal in the directory containing validator_v1.py.
 
 What you add
 - Create a new file validator_pipeline.py and add an import line:
-  from validator_v1 import parse_model_response, validate_against_schema, format_validation_errors, send_to_model
+  from validator_v1 import parse_model_response, validate_against_schema, format_validation_errors, send_to_model, SAMPLE_RESPONSES, SCHEMA
 - Implement make_repair_prompt(original_text, formatted_errors, schema_snippet) -> str
 
 Why it matters
@@ -172,9 +178,11 @@ What you add
 Why it matters
 - repair_once encapsulates a single roundtrip: sending a prompt and inspecting the returned text. The repair loop will call this repeatedly.
 
+Note: the function signature must be repair_once(prompt_text, schema) — ensure you pass schema into the function and that callers (run_repair_loop) pass schema too.
+
 Exact command to run
 - Save validator_pipeline.py and run this small script to call the function:
-  python -c "from validator_pipeline import repair_once; from validator_v1 import send_to_model; import json; schema={'type':'object','properties':{'title':{'type':'string'},'items':{'type':'array','items':{'type':'string'}}},'required':['title','items']}; prompt='test prompt'; print(repair_once(prompt,schema))"
+  python -c "from validator_pipeline import repair_once; from validator_v1 import send_to_model; import json; from validator_v1 import SCHEMA; prompt='test prompt'; print(repair_once(prompt, SCHEMA))"
 
 Expected terminal output
 - A 5-tuple printed. For the typical stub that returns a canned repaired JSON for certain prompts you might see:
@@ -195,7 +203,7 @@ What you add
 - Add run_repair_loop(original_text, schema, max_attempts=3)
   - Attempt 1: Try parsing and validating original_text without calling repair prompt. Use parse_model_response and validate_against_schema.
   - If valid, print "Attempt 1: Parsed OK and VALID — returning object: ..." and return (obj, None).
-  - If invalid, generate formatted_errors and schema_snippet (you can reuse the full schema dict serialized via json.dumps(schema) as schema_snippet).
+  - If invalid, generate formatted_errors and schema_snippet (you can reuse the full schema dict serialized via json.dumps(schema) as schema_snippet; be sure to import json at the top of validator_pipeline.py).
   - For attempt in 2..max_attempts:
     - Build prompt = make_repair_prompt(last_raw_text, formatted_errors, schema_snippet)
     - Call repair_once(prompt, schema)
@@ -210,9 +218,9 @@ Why it matters
 
 Exact command to run
 - Save validator_pipeline.py and run:
-  python -c "from validator_pipeline import run_repair_loop; from validator_v1 import sample_schema; print(run_repair_loop('initial bad response', sample_schema, max_attempts=3))"
+  python -c "from validator_pipeline import run_repair_loop; from validator_v1 import SCHEMA, SAMPLE_RESPONSES; import json; print(run_repair_loop(SAMPLE_RESPONSES[1], SCHEMA, max_attempts=3))"
 
-(If validator_v1.py doesn't expose sample_schema, replace with the same schema dict inline on the command line.)
+Note: we intentionally recommend running run_repair_loop with validator_v1.SAMPLE_RESPONSES[1] (the invalid sample) for the offline demo because the send_to_model stub in validator_v1.py is deterministic and cycles through canned responses. Using SAMPLE_RESPONSES[1] typically ensures the first repair call will receive the next canned response (often a repaired JSON) and produces the expected failing-first-then-success logs in this lesson. If you pass a different initial input, the canned-sequence alignment may differ and produce a different (but still correct) behavior.
 
 Expected terminal output
 - For a stub sequence that returns an invalid first response and a corrected response on second model call, you should see:
@@ -236,8 +244,8 @@ Visible check
 What you add
 - Implement run_parse_validate_repair(input_text_or_prompt, schema, max_attempts=3) that delegates to run_repair_loop and returns the same (obj, None) or (None, failure_summary).
 - Add a small __main__ demo at the bottom of validator_pipeline.py that:
-  - Imports sample responses and schema from validator_v1.py or defines a local schema.
-  - Calls run_parse_validate_repair on one example that is expected to be repaired by the stub sequence.
+  - Imports SAMPLE_RESPONSES and SCHEMA from validator_v1
+  - Calls run_parse_validate_repair on SAMPLE_RESPONSES[1] (the invalid sample) so the deterministic stub sequence demonstrates the failing-first-then-success case
   - Prints either "Final result: <obj>" or "Final failure: <summary>"
 
 Why it matters
@@ -266,12 +274,16 @@ Visible check
 Command to run:
 python validator_pipeline.py
 
+Note: for the deterministic offline demo we recommend running the pipeline using the provided SAMPLE_RESPONSES and SCHEMA constants from validator_v1.py:
+
+python -c "from validator_pipeline import run_parse_validate_repair; from validator_v1 import SAMPLE_RESPONSES, SCHEMA; print(run_parse_validate_repair(SAMPLE_RESPONSES[1], SCHEMA))"
+
 Expected successful terminal output (successful repair case):
 Attempt 1: INVALID – items[0] expected string but got 123
 Attempt 2: Parsed OK and VALID — returning object: {'title': 'Fixed', 'items': ['a','b']}
 Final result: {'title': 'Fixed', 'items': ['a','b']}
 
-If your send_to_model stub doesn't produce a repaired JSON on the second call, you'll see the failure case output above; that indicates the loop behaved correctly but the stub couldn't fix the response.
+If your send_to_model stub doesn't produce a repaired JSON on the second call, you'll see the failure case output above; that indicates the loop behaved correctly but the stub couldn't fix the response. The recommended SAMPLE_RESPONSES[1] input aligns with the stub's canned sequence in the Lesson 1 artifact to demonstrate the intended repaired outcome.
 
 ### Artifact
 
@@ -282,7 +294,7 @@ You now have validator_pipeline.py (which imports and reuses parse_model_respons
 - run_parse_validate_repair
 - A CLI/demo main that runs a sample repair sequence using the stub.
 
-(validator_v1.py remains unchanged and provides the parsing/validation primitives and the send_to_model stub.)
+(validator_v1.py remains unchanged and provides the parsing/validation primitives and the send_to_model stub, plus SAMPLE_RESPONSES and SCHEMA constants used in the demo.)
 
 ### Next Lesson
 
@@ -298,3 +310,5 @@ Prerequisite note: Lesson 2 relied only on the functions built in Lesson 1:
 - the send_to_model stub for deterministic offline testing.
 
 These were reused directly; no new parsing or validation libraries were introduced.
+
+--- END LESSON 2 ---
