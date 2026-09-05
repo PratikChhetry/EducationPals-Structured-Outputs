@@ -69,10 +69,12 @@ Lesson 2 completes the capstone.
 
     README.md
     requirements.txt
+    
     writeup.md
-        course/
-            lesson-1.md
-            lesson-2.md
+        
+    course/
+        lesson-1.md
+        lesson-2.md
 
     build/
         lesson-1/
