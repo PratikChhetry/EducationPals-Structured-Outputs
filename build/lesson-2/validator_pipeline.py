@@ -25,7 +25,7 @@ Original response:
 Return only JSON matching this schema:
 {json.dumps(schema)}
 
-Return only JSON — no explanatory text.
+Return only JSON, no explanatory text.
 """.strip()
 
 
@@ -74,7 +74,7 @@ def run_repair_loop(original_text, schema, max_attempts=3):
 
         if valid:
             print(
-                "Attempt 1: Parsed OK and VALID — returning object:",
+                "Attempt 1: Parsed OK and VALID, returning object:",
                 obj,
             )
             return obj, None
@@ -82,7 +82,7 @@ def run_repair_loop(original_text, schema, max_attempts=3):
         formatted_errors = format_validation_errors(errors)
 
         print(
-            "Attempt 1: INVALID —",
+            "Attempt 1: INVALID",
             "; ".join(formatted_errors),
         )
 
@@ -90,7 +90,7 @@ def run_repair_loop(original_text, schema, max_attempts=3):
         formatted_errors = [parse_note]
 
         print(
-            "Attempt 1: Parse FAILED —",
+            "Attempt 1: Parse FAILED -",
             parse_note,
         )
 
@@ -125,14 +125,14 @@ def run_repair_loop(original_text, schema, max_attempts=3):
         if parsed_ok and validation_ok:
             print(
                 f"Attempt {attempt}: Parsed OK and VALID "
-                f"— returning object:",
+                f"- returning object:",
                 repaired_obj,
             )
 
             return repaired_obj, None
 
         print(
-            f"Attempt {attempt}: INVALID —",
+            f"Attempt {attempt}: INVALID",
             "; ".join(new_errors),
         )
 
