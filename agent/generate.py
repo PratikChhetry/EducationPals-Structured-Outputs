@@ -26,9 +26,11 @@ course_spec_path = agent_dir / "course-spec.md"
 
 planner_prompt_path = agent_dir / "prompts" / "planner.txt"
 lesson_generator_path = agent_dir / "prompts" / "lesson-generator.txt"
+reviewer_prompt_path = agent_dir / "prompts" / "reviewer.txt"
 
 generated_dir = agent_dir / "generated"
 course_plan_path = generated_dir / "course-plan.md"
+review_path = generated_dir / "review.md"
 
 course_dir = project_dir / "course"
 
@@ -78,7 +80,7 @@ Here is the course specification:
     print(f"Saved to: {course_plan_path}")
 
 
-# Step 2: Generate a lesson
+# Step 2: Generate lessons
 
 def generate_lesson(lesson_number):
 
@@ -124,44 +126,97 @@ Do not generate content for any other lesson.
     print(f"Saved to: {lesson_path}")
 
 
-# Run
+# Step 3: Review course
 
-if __name__ == "__main__":
+def run_reviewer():
 
-    if not course_plan_path.exists():
-        generate_course_plan()
-    else:
-        print("Existing course plan found.")
+    reviewer_prompt = read_file(reviewer_prompt_path)
+    course_plan = read_file(course_plan_path)
 
     lesson_1_path = course_dir / "lesson-1.md"
     lesson_2_path = course_dir / "lesson-2.md"
 
-    if not lesson_1_path.exists():
-        generate_lesson(1)
-    else:
-        print("Existing Lesson 1 found.")
+    lesson_1 = read_file(lesson_1_path)
+    lesson_2 = read_file(lesson_2_path)
 
-    if not lesson_2_path.exists():
-        generate_lesson(2)
-    else:
-        print("Existing Lesson 2 found.")
+    full_prompt = f"""
+{reviewer_prompt}
+
+Here is the approved course plan:
+
+--- COURSE PLAN ---
+
+{course_plan}
+
+--- END COURSE PLAN ---
+
+
+Here is Lesson 1:
+
+--- LESSON 1 ---
+
+{lesson_1}
+
+--- END LESSON 1 ---
+
+
+Here is Lesson 2:
+
+--- LESSON 2 ---
+
+{lesson_2}
+
+--- END LESSON 2 ---
+"""
+
+    print("Running course reviewer...")
+
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input=full_prompt
+    )
+
+    review = response.output_text
+
+    generated_dir.mkdir(exist_ok=True)
+
+    review_path.write_text(
+        review,
+        encoding="utf-8"
+    )
+
+    print("Review complete.")
+    print(f"Saved to: {review_path}")
+
+
+# Run pipeline
 
 if __name__ == "__main__":
 
+    # Course plan
     if not course_plan_path.exists() or course_plan_path.stat().st_size == 0:
         generate_course_plan()
     else:
         print("Existing course plan found.")
 
+    # Lesson paths
     lesson_1_path = course_dir / "lesson-1.md"
     lesson_2_path = course_dir / "lesson-2.md"
 
+    # Lesson 1
     if not lesson_1_path.exists() or lesson_1_path.stat().st_size == 0:
         generate_lesson(1)
     else:
         print("Existing Lesson 1 found.")
 
+    # Lesson 2
     if not lesson_2_path.exists() or lesson_2_path.stat().st_size == 0:
         generate_lesson(2)
     else:
         print("Existing Lesson 2 found.")
+
+    # Review
+    if not review_path.exists() or review_path.stat().st_size == 0:
+        run_reviewer()
+    else:
+        print("Existing review found.")
