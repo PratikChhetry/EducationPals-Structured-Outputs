@@ -253,4 +253,4 @@ A local `.env` file can be used during development.
 
 The real `.env` file is not included.
 
-The learner-facing course and build-alongs do not require an API key.
+The learner-facing course and build-alongs don't require an API key.
